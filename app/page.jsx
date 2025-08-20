@@ -21,7 +21,7 @@ const Page = () => {
 
       {/* Footer */}
       <footer className="mt-10 text-center text-gray-500 text-xs sm:text-sm">
-        © {new Date().getFullYear()} AI Object Detector. Built with ❤️ by YourName.
+        © {new Date().getFullYear()} AI Object Detector. Built with ❤️ by Shiva Gundeti.
       </footer>
     </div>
   )
