@@ -7,74 +7,111 @@ import { renderPredictions } from "@/utils/Renderpredictions";
 
 const ObjectDetection = () => {
   const [loading, setLoading] = useState(true);
-  const [object, setObject] = useState("");
+  const [objectName, setObjectName] = useState("");
+
   const webcamRef = useRef(null);
   const canvasRef = useRef(null);
-  const intervalRef = useRef(null);
 
-  const runCoco = async () => {
-    const net = await cocoSSDLoad();
-    setLoading(false);
+  const modelRef = useRef(null);
+  const rafRef = useRef(null);
+  const runningRef = useRef(false);
 
-    intervalRef.current = setInterval(() => {
-      detectObjects(net);
-    }, 100);
-  };
+  const detectLoop = async () => {
+    if (!runningRef.current) return;
 
-  const detectObjects = async (net) => {
-    if (
-      canvasRef.current &&
-      webcamRef.current?.video?.readyState === 4
-    ) {
-      const video = webcamRef.current.video;
+    const video = webcamRef.current?.video;
+    const canvas = canvasRef.current;
+    const net = modelRef.current;
 
-      canvasRef.current.width = video.videoWidth;
-      canvasRef.current.height = video.videoHeight;
+    if (video && canvas && video.readyState === 4 && net) {
+   
+      if (
+        canvas.width !== video.videoWidth ||
+        canvas.height !== video.videoHeight
+      ) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+      }
 
-      // const detectedObjects = await net.detect(video,1,0.6);
-        const detectedObjects = await net.detect(
-        webcamRef.current.video,
-        1,
-        0.6
-      );
-      // console.log(detectObjects);
-      detectedObjects.forEach(prediction => {
-  const objectName = prediction.class; // 👈 name of the object
-  // const confidence = prediction.score; // 👈 probability
+   
+      const detected = await net.detect(video, 1, 0.6);
 
-  // console.log(`Detected: ${objectName} (${(confidence * 100).toFixed(2)}%)`);
-  setObject(objectName)
-});
+      if (detected?.length) {
       
-      
-      
-      const ctx = canvasRef.current.getContext("2d");
-      renderPredictions(detectedObjects, ctx);
+        setObjectName(detected[0].class || "");
+      } else {
+        setObjectName("");
+      }
+
+      const ctx = canvas.getContext("2d");
+      renderPredictions(detected, ctx);
     }
+
+    rafRef.current = requestAnimationFrame(detectLoop);
   };
 
   useEffect(() => {
-    runCoco();
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+    let mounted = true;
+
+    const load = async () => {
+      await tf.ready();
+      const model = await cocoSSDLoad();
+      if (!mounted) return;
+
+      modelRef.current = model;
+      setLoading(false);
+
+      runningRef.current = true;
+      rafRef.current = requestAnimationFrame(detectLoop);
     };
-  }, []);
+
+    load();
+
+    const onVisibility = () => {
+      const shouldRun = document.visibilityState === "visible";
+      runningRef.current = shouldRun;
+
+      if (shouldRun && !rafRef.current) {
+        rafRef.current = requestAnimationFrame(detectLoop);
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      mounted = false;
+
+      document.removeEventListener("visibilitychange", onVisibility);
+
+      runningRef.current = false;
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+
+      // dispose model to release GPU/CPU memory
+      if (modelRef.current?.dispose) {
+        try {
+          modelRef.current.dispose();
+        } catch {}
+      }
+      modelRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // load once
 
   return (
     <div className="flex flex-col md:flex-row items-center justify-between gap-10 w-full">
       {/* Left Section */}
-      <div className="flex flex-col  items-center md:items-start text-center md:text-left md:w-1/2 space-y-5">
+      <div className="flex flex-col items-center md:items-start text-center md:text-left md:w-1/2 space-y-5">
         <h2 className="text-2xl sm:text-3xl font-bold text-gray-800">
           Show an Object & Let <span className="text-green-600">AI Detect</span> It
         </h2>
         <p className="text-gray-600 text-sm sm:text-base leading-relaxed">
-          Place an object in front of the camera and instantly know about it.  
-      
+          Place an object in front of the camera and instantly know about it.
         </p>
         <button className="bg-green-500 text-white font-semibold px-6 py-3 rounded-xl shadow-lg hover:shadow-xl hover:bg-green-600 transition-all">
-           {object == "person" ? "A person" : `It's a ${object}`}
+          {objectName === "person" ? "A person" : objectName ? `It's a ${objectName}` : "Waiting..."}
         </button>
-       
       </div>
 
       {/* Right Section */}
@@ -90,11 +127,9 @@ const ObjectDetection = () => {
               className="w-full h-full object-cover rounded-md"
               muted
               mirrored
+              videoConstraints={{ facingMode: "user" }}
             />
-            <canvas
-              ref={canvasRef}
-              className="absolute top-0 left-0 w-full h-full"
-            />
+            <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
           </>
         )}
       </div>
