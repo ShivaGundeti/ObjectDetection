@@ -63,20 +63,18 @@ const ObjectDetection = () => {
   return (
     <div className="flex flex-col md:flex-row items-center justify-between gap-10 w-full">
       {/* Left Section */}
-      <div className="flex flex-col items-center md:items-start text-center md:text-left md:w-1/2 space-y-5">
+      <div className="flex flex-col  items-center md:items-start text-center md:text-left md:w-1/2 space-y-5">
         <h2 className="text-2xl sm:text-3xl font-bold text-gray-800">
           Show an Object & Let <span className="text-green-600">AI Detect</span> It
         </h2>
         <p className="text-gray-600 text-sm sm:text-base leading-relaxed">
-          Place an object in front of the camera and instantly know details about it.  
-          Your AI-powered assistant is just a click away!
+          Place an object in front of the camera and instantly know about it.  
+      
         </p>
         <button className="bg-green-500 text-white font-semibold px-6 py-3 rounded-xl shadow-lg hover:shadow-xl hover:bg-green-600 transition-all">
-           {object ? `Know about ${object}` : "Know about Object"}
+           {object == "person" ? "A person" : `It's a ${object}`}
         </button>
-        <div className="p-2 mt-2">
-    <p>Hey there dummy text</p>
-        </div>
+       
       </div>
 
       {/* Right Section */}
