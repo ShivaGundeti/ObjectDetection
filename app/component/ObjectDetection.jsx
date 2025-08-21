@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from "react";
 import Webcam from "react-webcam";
 import { load as cocoSSDLoad } from "@tensorflow-models/coco-ssd";
 import * as tf from "@tensorflow/tfjs";
-import { renderPredictions } from "@/utils/renderPredictions";
+import { renderPredictions } from "@/utils/Renderpredictions";
 
 const ObjectDetection = () => {
   const [loading, setLoading] = useState(true);
